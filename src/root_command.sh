@@ -1,8 +1,7 @@
 main() {
-  local claude_dir="${args['--claude-dir']:-}"
   local non_interactive="${args['--yes']:-}"
 
-  init_claude_paths "$claude_dir"
+  init_claude_paths
 
   print_banner
 
@@ -112,16 +111,14 @@ step_shell() {
     exit 1
   fi
 
-  local current_shell
-  current_shell=$(get_setting '.env.SHELL')
-
-  if [[ "$current_shell" == "$shell_path" ]]; then
-    success "Shell already set to $shell_name"
-    return 0
-  fi
-
   info "Configuring Claude to use $shell_name ($shell_path)"
+
+  # Set env.SHELL in settings.json (for when Claude fixes the bug)
   set_setting '.env.SHELL' "\"$shell_path\""
+
+  # Add shell alias to shell config files (workaround until bug is fixed)
+  configure_shell_alias "$shell_path"
+
   success "Shell configured"
 }
 
@@ -235,15 +232,19 @@ print_completion() {
     info "Hook file: $(get_hook_filepath)"
   fi
   echo ""
-  if [[ "$USING_CHEZMOI" == true ]]; then
-    if prompt_yes_no "Run 'chezmoi apply ~/.claude' now?" "Y"; then
-      chezmoi apply ~/.claude
+  # Prompt to apply chezmoi if any managed files were modified
+  if has_chezmoi_modifications; then
+    echo ""
+    local chezmoi_targets="${CHEZMOI_MODIFIED_FILES[*]}"
+    if prompt_yes_no "Run 'chezmoi apply $chezmoi_targets' now?" "Y"; then
+      chezmoi apply "${CHEZMOI_MODIFIED_FILES[@]}"
       success "Chezmoi applied"
     else
-      warn "Remember to run 'chezmoi apply ~/.claude' before using Claude Code"
+      warn "Remember to run 'chezmoi apply $chezmoi_targets' before using Claude Code"
     fi
   fi
-  info "Start a new Claude Code session to apply changes."
+  echo ""
+  info "Restart your shell and run 'claude' to start using Better Claude Code."
 }
 
 main

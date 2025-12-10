@@ -5,19 +5,27 @@ CLAUDE_DIR=""
 CLAUDE_SETTINGS=""
 CLAUDE_HOOKS_DIR=""
 HOOK_FILE_PREFIX=""
-USING_CHEZMOI=false
+
+# Track files modified that are managed by chezmoi (used by shell_alias.sh too)
+CHEZMOI_MODIFIED_FILES=()
+
+# Check if any chezmoi files were modified
+has_chezmoi_modifications() {
+  [[ ${#CHEZMOI_MODIFIED_FILES[@]} -gt 0 ]]
+}
 
 # --- Initialization (must be called before using other functions) ---
 
 init_claude_paths() {
-  local custom_dir="${1:-}"
+  # CLAUDE_DIR_OVERRIDE is for testing only (not exposed as CLI flag)
+  local custom_dir="${CLAUDE_DIR_OVERRIDE:-}"
 
   # Check if chezmoi manages ~/.claude
   if [[ -z "$custom_dir" ]] && is_claude_managed_by_chezmoi; then
-    # shellcheck disable=SC2034  # Used by root_command.sh
-    USING_CHEZMOI=true
     CLAUDE_DIR="$(chezmoi source-path)/dot_claude"
     HOOK_FILE_PREFIX="executable_"
+    # Track that ~/.claude is managed by chezmoi
+    CHEZMOI_MODIFIED_FILES+=("$HOME/.claude")
     info "Detected chezmoi managing ~/.claude"
     info "Installing to: $CLAUDE_DIR"
   else
@@ -36,7 +44,7 @@ is_claude_managed_by_chezmoi() {
   fi
 
   # Check if ~/.claude is managed by chezmoi
-  chezmoi managed --include=dirs 2>/dev/null | grep -q '^\.claude$'
+  chezmoi source-path ~/.claude &>/dev/null
 }
 
 get_hook_filename() {
