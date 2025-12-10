@@ -20,6 +20,9 @@ better-claude/
 ├── test/
 │   ├── test_helper.bash # Common test helpers and assertions
 │   └── install.bats     # All installer tests
+├── assets/
+│   └── auto-approve-allowed-commands.sh  # SOURCE for hook script (edit this!)
+├── build.sh             # Embeds assets/ into src/lib/hook_content.sh
 └── src/
     ├── bashly.yml       # Bashly CLI configuration (flags, args)
     ├── root_command.sh  # Main installer logic (interactive flow)
@@ -28,9 +31,18 @@ better-claude/
         ├── deps.sh      # Dependency checking and installation (Homebrew, bash, jq, shfmt)
         ├── settings.sh  # Claude settings.json manipulation + chezmoi detection
         ├── shell_alias.sh # Shell alias configuration for bash/zsh/fish
-        ├── hook_script.sh # Generates the auto-approve-allowed-commands.sh hook content
+        ├── hook_content.sh # AUTO-GENERATED - contains embedded hook script
         └── permissions.sh # Default safe Bash permissions list (200+ commands)
 ```
+
+### Generated Files (DO NOT EDIT DIRECTLY)
+
+| File | Source | Regenerate with |
+|------|--------|-----------------|
+| `install.sh` | `src/` | `bashly generate` |
+| `src/lib/hook_content.sh` | `assets/auto-approve-allowed-commands.sh` | `./build.sh` |
+
+**IMPORTANT:** To modify the hook script logic, edit `assets/auto-approve-allowed-commands.sh`, then run `./build.sh` to regenerate `src/lib/hook_content.sh`.
 
 ## Development Workflow
 

@@ -6,20 +6,44 @@
 #   2. .claude/settings.json (project shared)
 #   3. .claude/settings.local.json (project local)
 #
-# Dependencies: shell-commands (~/bin/shell-commands), jq
+# Dependencies: shfmt, jq
 #
-# Usage: echo '{"tool_input":{"command":"ls | grep foo"}}' | allow-piped.sh [--debug]
+# Usage: echo '{"tool_input":{"command":"ls | grep foo"}}' | auto-approve-allowed-commands.sh [OPTIONS]
+#
+# Options:
+#   --debug                 Enable debug output to stderr
+#   --permissions JSON      Use custom permissions instead of reading from settings files
+#                           JSON format: '["Bash(ls:*)", "Bash(grep:*)"]'
+#
+# Examples:
+#   # Normal usage (reads permissions from settings files)
+#   echo '{"tool_input":{"command":"ls | grep foo"}}' | auto-approve-allowed-commands.sh
+#
+#   # Testing with custom permissions
+#   echo '{"tool_input":{"command":"ls | grep foo"}}' | auto-approve-allowed-commands.sh --permissions '["Bash(ls:*)", "Bash(grep:*)"]'
 
 set -euo pipefail
 
 # Debug mode
 DEBUG=false
 NUL_DELIM=false
+# Custom permissions for testing (JSON array like: '["Bash(ls:*)", "Bash(cat:*)"]')
+CUSTOM_PERMISSIONS=""
 
 debug() {
   if $DEBUG; then
     echo "[DEBUG] $*" >&2
   fi
+}
+
+# Extract prefixes from a JSON array of permissions (for testing)
+# Input: '["Bash(ls:*)", "Bash(grep:*)", "Bash(git log:*)"]'
+# Output: ls\ngrep\ngit log
+extract_prefixes_from_json() {
+  local json="$1"
+  echo "$json" | jq -r '.[]? // empty' 2>/dev/null \
+    | grep -E '^Bash\(' \
+    | sed -E 's/^Bash\(//; s/(:\*)?\)$//'
 }
 
 # Extract allowed Bash command prefixes from a settings file
@@ -41,8 +65,15 @@ find_git_root() {
   git rev-parse --show-toplevel 2>/dev/null
 }
 
-# Get all allowed prefixes from all settings files
+# Get all allowed prefixes from all settings files (or custom permissions if set for testing)
 get_allowed_prefixes() {
+  # If custom permissions are set (for testing), use those instead
+  if [[ -n "$CUSTOM_PERMISSIONS" ]]; then
+    debug "Using custom permissions: $CUSTOM_PERMISSIONS"
+    extract_prefixes_from_json "$CUSTOM_PERMISSIONS"
+    return
+  fi
+
   local git_root
   git_root=$(find_git_root)
 
@@ -84,7 +115,22 @@ is_command_allowed() {
 }
 
 main() {
-  [[ "${1:-}" == "--debug" ]] && DEBUG=true
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --debug)
+        DEBUG=true
+        shift
+        ;;
+      --permissions)
+        CUSTOM_PERMISSIONS="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
 
   # Check for required dependencies
   if ! command -v jq &>/dev/null; then
