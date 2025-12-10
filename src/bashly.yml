@@ -1,0 +1,19 @@
+name: install.sh
+help: Enhance Claude Code with better shell handling and command permissions
+version: 0.1.0
+
+flags:
+  - long: --claude-dir
+    short: -d
+    arg: dir
+    help: "Path to .claude directory (default: ~/.claude)"
+
+  - long: --hook-prefix
+    short: -p
+    arg: prefix
+    help: "Prefix for hook filename (e.g., 'executable_' for chezmoi)"
+
+  - long: --shell
+    short: -s
+    arg: shell_path
+    help: "Path to shell (default: modern bash)"

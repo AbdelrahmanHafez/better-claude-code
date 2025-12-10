@@ -1,0 +1,5 @@
+# These are bashly source fragments, not standalone scripts
+# They get bundled into a single executable with a shebang
+
+# SC2148: Tips depend on target shell and target shell was not specified
+disable=SC2148
