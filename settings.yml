@@ -1,0 +1,3 @@
+# Bashly settings
+# Disable built-in 4.2 check - we have our own 4.4 check
+enable_bash3_bouncer: never

@@ -9,15 +9,7 @@ Enhancements for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) C
 ## Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AbdelrahmanHafez/better-claude-code/main/install.sh | bash
-```
-
-Or clone and run locally:
-
-```bash
-git clone https://github.com/AbdelrahmanHafez/better-claude-code.git
-cd better-claude-code
-./install.sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/AbdelrahmanHafez/better-claude-code/main/install.sh)"
 ```
 
 ## What This Does
