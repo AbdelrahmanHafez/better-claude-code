@@ -4,19 +4,43 @@
 CLAUDE_DIR=""
 CLAUDE_SETTINGS=""
 CLAUDE_HOOKS_DIR=""
+HOOK_FILE_PREFIX=""
+USING_CHEZMOI=false
 
 # --- Initialization (must be called before using other functions) ---
 
 init_claude_paths() {
   local custom_dir="${1:-}"
 
-  CLAUDE_DIR="${custom_dir:-$HOME/.claude}"
+  # Check if chezmoi manages ~/.claude
+  if [[ -z "$custom_dir" ]] && is_claude_managed_by_chezmoi; then
+    # shellcheck disable=SC2034  # Used by root_command.sh
+    USING_CHEZMOI=true
+    CLAUDE_DIR="$(chezmoi source-path)/dot_claude"
+    HOOK_FILE_PREFIX="executable_"
+    info "Detected chezmoi managing ~/.claude"
+    info "Installing to: $CLAUDE_DIR"
+  else
+    CLAUDE_DIR="${custom_dir:-$HOME/.claude}"
+    HOOK_FILE_PREFIX=""
+  fi
+
   CLAUDE_SETTINGS="$CLAUDE_DIR/settings.json"
   CLAUDE_HOOKS_DIR="$CLAUDE_DIR/hooks"
 }
 
+is_claude_managed_by_chezmoi() {
+  # Check if chezmoi is installed
+  if ! command -v chezmoi &>/dev/null; then
+    return 1
+  fi
+
+  # Check if ~/.claude is managed by chezmoi
+  chezmoi managed --include=dirs 2>/dev/null | grep -q '^\.claude$'
+}
+
 get_hook_filename() {
-  echo "auto-approve-allowed-commands.sh"
+  echo "${HOOK_FILE_PREFIX}auto-approve-allowed-commands.sh"
 }
 
 get_hook_filepath() {

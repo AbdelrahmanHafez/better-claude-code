@@ -235,6 +235,14 @@ print_completion() {
     info "Hook file: $(get_hook_filepath)"
   fi
   echo ""
+  if [[ "$USING_CHEZMOI" == true ]]; then
+    if prompt_yes_no "Run 'chezmoi apply ~/.claude' now?" "Y"; then
+      chezmoi apply ~/.claude
+      success "Chezmoi applied"
+    else
+      warn "Remember to run 'chezmoi apply ~/.claude' before using Claude Code"
+    fi
+  fi
   info "Start a new Claude Code session to apply changes."
 }
 
