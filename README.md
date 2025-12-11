@@ -1,4 +1,4 @@
-# Better Claude Code
+# Claude Code Plus
 
 > **EXPERIMENTAL** - This project is in early development. Use at your own risk.
 
@@ -7,7 +7,13 @@ Enhancements for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) C
 ## Quick Install
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/AbdelrahmanHafez/better-claude-code/main/install.sh)"
+npx claude-code-plus
+```
+
+Or with non-interactive mode (accepts all defaults):
+
+```bash
+npx claude-code-plus -y
 ```
 
 ## What This Does
@@ -24,15 +30,52 @@ Enhancements for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) C
 
 **What we add:** A shell alias that wraps the `claude` command to set `SHELL` in a way that Claude Code respects, plus configures `env.SHELL` in settings.json for when the upstream fix lands.
 
+## Platform Support
+
+| Platform | Status |
+|----------|--------|
+| macOS | Fully supported |
+| Linux | Fully supported |
+| Windows | Use [WSL2](https://docs.microsoft.com/en-us/windows/wsl/install) |
+
+**Windows users:** Install WSL2 and run the installer from within your WSL environment. The hook script requires bash, jq, and shfmt which are Unix tools.
+
 ## Requirements
 
-- macOS (Linux support planned)
+**Required:**
+- **Node.js 18+** (for running the installer via npx)
 
-The installer will automatically install these dependencies if missing (via Homebrew):
-- **Homebrew** itself (prompts to install if missing)
-- `bash` 4.4+ (required by the hook script; macOS ships with 3.2)
-- `jq` (JSON processor)
-- `shfmt` (shell parser)
+**Auto-installed if missing:**
+- **bash 4.4+** (required by the hook script; macOS ships with 3.2)
+- **jq** (JSON processor)
+- **shfmt** (shell parser)
+
+> The installer will automatically detect missing dependencies and offer to install them using your system's package manager (Homebrew, apt, dnf, pacman, or apk).
+
+<details>
+<summary>Manual installation (if needed)</summary>
+
+**macOS:**
+```bash
+brew install bash jq shfmt
+```
+
+**Linux (Debian/Ubuntu):**
+```bash
+apt install bash jq shfmt
+```
+
+**Linux (Fedora/RHEL):**
+```bash
+dnf install bash jq shfmt
+```
+
+**Linux (Arch):**
+```bash
+pacman -S bash jq shfmt
+```
+
+</details>
 
 ## Usage
 
@@ -41,7 +84,7 @@ The installer will automatically install these dependencies if missing (via Home
 Simply run:
 
 ```bash
-./install.sh
+npx claude-code-plus
 ```
 
 You'll be prompted to choose between:
@@ -53,24 +96,23 @@ You'll be prompted to choose between:
 For scripting or automation:
 
 ```bash
-./install.sh -y
+npx claude-code-plus -y
 ```
 
 This installs everything with defaults (modern bash, hook, permissions).
 
-### Specifying a Shell
+### Custom Shell
 
-By default, the installer uses Homebrew's modern bash. To use a different shell:
+In the **Custom** installation mode, you can choose to use a different shell instead of modern bash. When prompted, enter either:
+- A shell name (e.g., `fish`, `zsh`) - will be resolved using `which`
+- A full path (e.g., `/opt/homebrew/bin/fish`)
 
-```bash
-./install.sh --shell /opt/homebrew/bin/fish
-./install.sh -s /bin/zsh
-```
+> **Note:** Modern bash (4.4+) is recommended for Claude Code as it provides the best compatibility with the auto-approve hook.
 
 ### Help
 
 ```bash
-./install.sh --help
+npx claude-code-plus --help
 ```
 
 ## Chezmoi Integration
@@ -107,7 +149,7 @@ The installer adds auto-approval for 850+ permission entries covering 350+ comma
 - **Databases:** `psql`, `mysql`, `sqlite3`, `mongo`, `redis-cli` (read-only)
 - **Editors/tools:** `code`, `vim`, `nvim`, `bat`, `delta`, `fzf`, `tmux` (read-only)
 
-See [src/lib/permissions.sh](src/lib/permissions.sh) for the full list.
+See [src/permissions.ts](src/permissions.ts) for the full list.
 
 ## How the Hook Works
 
@@ -155,7 +197,7 @@ If you add these manually, understand the risks.
 rm ~/.claude/hooks/auto-approve-allowed-commands.sh
 
 # Remove the shell alias from your shell config files
-# Look for lines after "# Added by better-claude-code for shell alias"
+# Look for lines after "# Added by claude-code-plus for shell alias"
 
 # Edit ~/.claude/settings.json to:
 # - Remove the hook config from .hooks.PreToolUse

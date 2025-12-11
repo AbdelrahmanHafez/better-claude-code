@@ -1,1 +1,3 @@
 src/lib/hook_content.sh
+node_modules
+dist

@@ -1,4 +1,0 @@
-# Bashly settings
-# Disable Bash 4+ features for Bash 3.2 compatibility
-enable_inspect_args: never
-enable_deps_array: never
