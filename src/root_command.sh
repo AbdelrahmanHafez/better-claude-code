@@ -1,5 +1,17 @@
 main() {
-  local non_interactive="${args_yes:-}"
+  # Make non_interactive available to other functions (e.g., print_completion)
+  NON_INTERACTIVE="${args_yes:-}"
+
+  # Auto-detect when no TTY is available (e.g., curl | bash in CI)
+  # Use -e to test if /dev/tty exists and is writable
+  if [ -z "$NON_INTERACTIVE" ]; then
+    if ! exec 3>/dev/tty 2>/dev/null; then
+      NON_INTERACTIVE="true"
+      echo "No TTY detected, running in non-interactive mode (recommended settings)"
+    else
+      exec 3>&-  # Close the test file descriptor
+    fi
+  fi
 
   init_claude_paths
 
@@ -8,7 +20,7 @@ main() {
   step_deps
 
   local mode="recommended"
-  if [[ -z "$non_interactive" ]]; then
+  if [[ -z "$NON_INTERACTIVE" ]]; then
     mode=$(prompt_install_mode)
   fi
 
@@ -83,7 +95,7 @@ step_deps() {
     return
   fi
 
-  read -p "Install missing dependencies? [Y/n] " -n 1 -r
+  read -p "Install missing dependencies? [Y/n] " -n 1 -r < /dev/tty
   echo ""
 
   if [[ $REPLY =~ ^[Nn]$ ]]; then
@@ -194,7 +206,7 @@ prompt_install_mode() {
 
   local choice
   while true; do
-    read -p "Enter choice [1/2]: " -n 1 -r choice
+    read -p "Enter choice [1/2]: " -n 1 -r choice < /dev/tty
     printf '\n' > /dev/tty
     case "$choice" in
       1) echo "recommended"; return ;;
@@ -217,7 +229,7 @@ prompt_yes_no() {
   fi
 
   local reply
-  read -p "$prompt $hint " -n 1 -r reply
+  read -p "$prompt $hint " -n 1 -r reply < /dev/tty
   echo ""
 
   if [[ -z "$reply" ]]; then
@@ -253,7 +265,8 @@ print_completion() {
     local chezmoi_targets_display
     chezmoi_targets_display="$(display_path "$chezmoi_targets")"
     local chezmoi_cmd="chezmoi apply $chezmoi_targets_display"
-    if prompt_yes_no "Run $(cmd "$chezmoi_cmd") now?" "Y"; then
+    # In non-interactive mode, auto-apply chezmoi
+    if [ -n "$NON_INTERACTIVE" ] || prompt_yes_no "Run $(cmd "$chezmoi_cmd") now?" "Y"; then
       # shellcheck disable=SC2086
       chezmoi apply $chezmoi_targets
       success "Chezmoi applied"

@@ -92,7 +92,7 @@ prompt_homebrew_install() {
   info "Installation may take several minutes."
   echo ""
 
-  read -p "Install Homebrew now? [Y/n] " -n 1 -r
+  read -p "Install Homebrew now? [Y/n] " -n 1 -r < /dev/tty
   echo ""
 
   if [[ $REPLY =~ ^[Nn]$ ]]; then
