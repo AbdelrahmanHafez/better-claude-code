@@ -3,13 +3,12 @@ main() {
   NON_INTERACTIVE="${args_yes:-}"
 
   # Auto-detect when no TTY is available (e.g., curl | bash in CI)
-  # Use -e to test if /dev/tty exists and is writable
+  # Try to open /dev/tty - if it fails, we're not in an interactive terminal
+  # The subshell prevents set -e from exiting the script on failure
   if [ -z "$NON_INTERACTIVE" ]; then
-    if ! exec 3>/dev/tty 2>/dev/null; then
+    if ! (exec </dev/tty) 2>/dev/null; then
       NON_INTERACTIVE="true"
       echo "No TTY detected, running in non-interactive mode (recommended settings)"
-    else
-      exec 3>&-  # Close the test file descriptor
     fi
   fi
 
