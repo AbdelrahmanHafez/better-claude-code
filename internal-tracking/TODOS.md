@@ -22,6 +22,7 @@
 - [x] [18. Use relative hook path in settings.json](#18-use-relative-hook-path-in-settingsjson) - Uses `$HOME` which Claude expands at runtime
 - [x] [19. Test commands with colons](#19-test-commands-with-colons) ✅ Implemented in parsing_special_chars.bats
 - [ ] [20. Regex-based allowlist for conditional command approval](#20-regex-based-allowlist-for-conditional-command-approval)
+- [ ] [21. Allow custom installation to specify custom shell](#21-allow-custom-installation-to-specify-custom-shell)
 
 ---
 
@@ -1840,3 +1841,137 @@ for commands that truly need conditional approval.
 **Phase 2:** Add default regex rules for common dual-use commands
 **Phase 3:** Add installer option to enable/configure regex permissions
 **Phase 4:** Documentation and examples
+
+---
+
+## 21. Allow custom installation to specify custom shell
+
+**Current behavior:** The custom installation mode only allows enabling/disabling features (hook, shell config, permissions). The shell path is always determined by the `--shell` flag default (modern bash from Homebrew).
+
+**Problem:** Users in custom mode may want to specify a different shell without using the CLI flag. The interactive flow should prompt for shell selection when shell configuration is enabled.
+
+### Proposed flow
+
+When user selects "Custom installation" and enables "Shell configuration":
+
+```
+Select features to install:
+  [x] Auto-approve-allowed-commands hook
+  [x] Shell configuration        ← User enables this
+  [x] Safe command permissions
+
+Press Enter to continue...
+
+────────────────────────────────────────────
+
+Shell Configuration
+
+Select shell for Claude Code to use:
+
+  1) bash (recommended) - Best compatibility with Claude's commands
+  2) zsh - macOS default
+  3) fish
+  4) Other - specify name or path
+
+Choice [1]: 4
+
+Enter shell name or path: /usr/local/bin/nu
+Found: /usr/local/bin/nu
+
+Use /usr/local/bin/nu? [Y/n]: Y
+
+✓ Shell configured to /usr/local/bin/nu
+```
+
+### Implementation
+
+**src/root_command.sh:**
+
+```bash
+install_customized() {
+  local features
+  features=$(prompt_feature_selection)
+
+  for feature in $features; do
+    case "$feature" in
+      hook) install_hook ;;
+      shell)
+        # NEW: Prompt for shell selection in custom mode
+        local shell_path
+        if [[ -z "${args['--shell']:-}" ]]; then
+          shell_path=$(prompt_shell_selection)
+        else
+          shell_path="${args['--shell']}"
+        fi
+        configure_shell "$shell_path"
+        ;;
+      permissions) prompt_and_add_permissions ;;
+    esac
+  done
+}
+
+prompt_shell_selection() {
+  echo ""
+  echo "Select shell for Claude Code to use:"
+  echo ""
+  echo "  1) bash (recommended)"
+  echo "  2) zsh"
+  echo "  3) fish"
+  echo "  4) Other - specify name or path"
+  echo ""
+
+  local choice
+  read -p "Choice [1]: " choice
+  choice="${choice:-1}"
+
+  case "$choice" in
+    1) find_modern_bash ;;
+    2) echo "/bin/zsh" ;;
+    3) find_fish_path ;;
+    4) prompt_custom_shell_path ;;
+    *) find_modern_bash ;;  # Default to bash
+  esac
+}
+
+prompt_custom_shell_path() {
+  local input
+  read -p "Enter shell name or path: " input
+
+  local resolved
+  resolved=$(resolve_shell_path "$input")
+
+  if [[ -n "$resolved" ]]; then
+    echo "Found: $resolved"
+    local confirm
+    read -p "Use $resolved? [Y/n]: " confirm
+    if [[ ! "$confirm" =~ ^[Nn]$ ]]; then
+      echo "$resolved"
+      return
+    fi
+  fi
+
+  # Fallback to bash if user cancels or shell not found
+  find_modern_bash
+}
+```
+
+### Relationship to other TODOs
+
+- **TODO #13 (Redesign installer flow):** This is a subset of that work. The shell picker logic can be developed here and reused when the full flow redesign happens.
+- **TODO #17 (Default shell to bash):** Already implemented. This TODO extends that by adding interactive selection in custom mode.
+
+### Testing
+
+```bash
+# Test custom mode prompts for shell when shell config is enabled
+CLAUDE_DIR_OVERRIDE=/tmp/test-claude ./install.sh
+# Select "Custom installation"
+# Enable "Shell configuration"
+# Verify shell picker appears
+
+# Test --shell flag still overrides in custom mode
+CLAUDE_DIR_OVERRIDE=/tmp/test-claude ./install.sh --shell /bin/zsh
+# Select "Custom installation"
+# Enable "Shell configuration"
+# Verify NO shell picker (flag takes precedence)
+```
